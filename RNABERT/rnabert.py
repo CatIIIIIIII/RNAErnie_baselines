@@ -372,24 +372,24 @@ class BertForMaskedLM(nn.Module):
             encoded_layers, pooled_output, attention_probs = self.bert(
                 input_ids, token_type_ids, attention_mask, output_all_encoded_layers=False, attention_show_flg=True)
 
-        prediction_scores, prediction_scores_ss, seq_relationship_score = self.cls(
-            encoded_layers, pooled_output)
+        prediction_scores, prediction_scores_ss, seq_relationship_score = \
+            self.cls(encoded_layers, pooled_output)
         return prediction_scores, prediction_scores_ss, encoded_layers
 
 
-class RNABertForSeqCls(nn.Module):
-    def __init__(self, net_bert, hidden_size, num_labels):
-        super(RNABertForSeqCls, self).__init__()
-        self.bert = net_bert
-        self.classifier = nn.Linear(hidden_size, num_labels)
+# class RNABertForSeqCls(nn.Module):
+#     def __init__(self, net_bert, hidden_size, num_labels):
+#         super(RNABertForSeqCls, self).__init__()
+#         self.bert = net_bert
+#         self.classifier = nn.Linear(hidden_size, num_labels)
 
-    def _load_pretrained_bert(self, path):
-        self.load_state_dict(torch.load(path, map_location="cpu"), strict=False)
+#     def _load_pretrained_bert(self, path):
+#         self.load_state_dict(torch.load(path, map_location="cpu"), strict=False)
 
-    def forward(self, input_ids):
-        _, pooled_output = self.bert(input_ids)
-        logits = self.classifier(pooled_output)
-        return logits
+#     def forward(self, input_ids):
+#         _, pooled_output = self.bert(input_ids)
+#         logits = self.classifier(pooled_output)
+#         return logits
 
 
 if __name__ == "__main__":

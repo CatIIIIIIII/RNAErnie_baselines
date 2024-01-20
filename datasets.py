@@ -1,10 +1,10 @@
 import os.path as osp
-from Bio import SeqIO
-import torch
-from torch.utils.data import Dataset
+
 import numpy as np
-from base_classes import BaseCollator
-from utils import seq2kmer
+import pandas as pd
+from Bio import SeqIO
+
+from torch.utils.data import Dataset
 
 
 class SeqClsDataset(Dataset):
@@ -35,62 +35,56 @@ class SeqClsDataset(Dataset):
         return len(self.data)
 
 
-class SeqClsCollator(BaseCollator):
-    """Data collator for sequence classification.
+class GenerateRRInterTrainTest:
+    """generate train and test dataset for rna rna interaction prediction.
     """
 
-    def __init__(self, max_seq_len, tokenizer, label2id,
-                 replace_T=True, replace_U=False):
+    def __init__(self,
+                 rr_dir,
+                 dataset,
+                 split=0.8,
+                 seed=0):
+        """init function
 
-        super(SeqClsCollator, self).__init__()
-        self.max_seq_len = max_seq_len
-        self.tokenizer = tokenizer
-        self.label2id = label2id
-        # only replace T or U
-        assert replace_T ^ replace_U, "Only replace T or U."
-        self.replace_T = replace_T
-        self.replace_U = replace_U
+        Args:
+            rr_dir (str): data root dir
+            dataset (str): dataset name
+            split (float, optional): split ratio. Defaults to 0.8.
+            seed (int, optional): random seed. Defaults to 0.
+        """
 
-    def __call__(self, raw_data_b):
-        input_ids_b = []
-        label_b = []
-        for raw_data in raw_data_b:
-            seq = raw_data["seq"]
-            seq = seq.upper()
-            seq = seq.replace(
-                "T", "U") if self.replace_T else seq.replace("U", "T")
-            kmer_text = seq2kmer(seq, self.tokenizer)
-            # input_text = "[CLS] " + kmer_text + " [SEP]"
-            input_text = "[CLS] " + kmer_text
-            input_ids = self.tokenizer(input_text)["input_ids"]
-            if None in input_ids:
-                # replace all None with 0
-                input_ids = [0 if x is None else x for x in input_ids]
-            input_ids_b.append(input_ids)
+        csv_path = osp.join(rr_dir, dataset) + ".csv"
+        self.data = pd.read_csv(csv_path, sep=",").values.tolist()
 
-            label = raw_data["label"]
-            label_b.append(self.label2id[label])
+        self.split_index = int(len(self.data) * split)
 
-        if self.max_seq_len == 0:
-            self.max_seq_len = max([len(x) for x in input_ids_b])
+        np_rng = np.random.RandomState(seed=seed)
+        np_rng.shuffle(self.data)
 
-        input_ids_stack = []
-        labels_stack = []
+    def get(self):
+        """get train and test dataset
 
-        for i_batch in range(len(input_ids_b)):
-            input_ids = input_ids_b[i_batch]
-            label = label_b[i_batch]
+        Returns:
+            tuple: RRInterDataset, RRInterDataset
+        """
+        return RRInterDataset(self.data[:self.split_index]), RRInterDataset(self.data[self.split_index:])
 
-            if len(input_ids) > self.max_seq_len:
-                # move [SEP] to end
-                # input_ids[self.max_seq_len-1] = input_ids[-1]
-                input_ids = input_ids[:self.max_seq_len]
 
-            input_ids += [0] * (self.max_seq_len - len(input_ids))
-            input_ids_stack.append(input_ids)
-            labels_stack.append(label)
+class RRInterDataset(Dataset):
+    def __init__(self, data):
+        super().__init__()
+        self.data = data
 
+    def __getitem__(self, idx):
+
+        instance = self.data[idx]
         return {
-            "input_ids": torch.from_numpy(self.stack_fn(input_ids_stack)),
-            "labels": torch.from_numpy(self.stack_fn(labels_stack)),
+            "a_name": instance[0],
+            "a_seq": instance[1],
+            "b_name": instance[2],
+            "b_seq": instance[3],
+            "label": instance[4],
         }
+
+    def __len__(self):
+        return len(self.data)
