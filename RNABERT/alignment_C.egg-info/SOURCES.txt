@@ -1,0 +1,7 @@
+README.md
+alignment.cpp
+setup.py
+alignment_C.egg-info/PKG-INFO
+alignment_C.egg-info/SOURCES.txt
+alignment_C.egg-info/dependency_links.txt
+alignment_C.egg-info/top_level.txt
