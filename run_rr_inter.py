@@ -3,6 +3,7 @@ import argparse
 from RNABERT.rnabert import BertModel
 from RNABERT.utils.bert import get_config
 from torch.optim import AdamW
+from RNAMSM.model import MSATransformer
 from metrics import RRInterMetrics
 from trainers import RRInterTrainer
 
@@ -10,23 +11,23 @@ from utils import str2bool, str2list
 from losses import RRInterLoss
 import torch
 from datasets import GenerateRRInterTrainTest
-from rr_inter import RNABertForRRInter
+from rr_inter import RNABertForRRInter, RNAMsmForRRInter
 from tokenizer import RNATokenizer
 from collators import RRDataCollator
 
 # ========== Define constants
-MODELS = ["RNABERT"]
+MODELS = ["RNABERT", "RNAMSM"]
 
 # ========== Configuration
 parser = argparse.ArgumentParser(
     'Implementation of RNA-RNA Interaction prediction.')
 # model args
-parser.add_argument('--model_name', type=str, default="RNABERT", choices=MODELS)
+parser.add_argument('--model_name', type=str, default="RNAMSM", choices=MODELS)
 parser.add_argument('--vocab_path', type=str, default="./vocabs/")
 parser.add_argument('--pretrained_model', type=str,
-                    default="./checkpoints/bert/")
+                    default="./checkpoints/")
 parser.add_argument('--config_path', type=str,
-                    default="./RNABERT/RNA_bert_config.json")
+                    default="./configs/")
 
 parser.add_argument('--dataset', type=str, default="MirTarRAW",)
 parser.add_argument('--dataset_dir', type=str, default="./data/rr")
@@ -38,7 +39,7 @@ parser.add_argument('--dataloader_num_workers', type=int, default=0)
 parser.add_argument('--device', type=str, default='cpu')
 parser.add_argument('--max_seq_lens', type=list, default=[26, 40])
 parser.add_argument('--hidden_size', type=int, default=120)
-parser.add_argument('--learning_rate', type=float, default=1e-4)
+parser.add_argument('--learning_rate', type=float, default=1e-3)
 parser.add_argument('--train', type=str2bool, default=True)
 parser.add_argument('--disable_tqdm', type=str2bool,
                     default=False, help='Disable tqdm display if true.')
@@ -66,12 +67,16 @@ if __name__ == "__main__":
     # ========== Build tokenizer, model, criterion
     tokenizer = RNATokenizer(args.vocab_path + "{}.txt".format(args.model_name))
 
+    model_config = get_config(
+        args.config_path + "{}.json".format(args.model_name))
     if args.model_name == "RNABERT":
-        model_config = get_config("./configs/RNABERT.json")
         model = BertModel(model_config)
         model = RNABertForRRInter(model)
-        model._load_pretrained_bert(
-            args.pretrained_model+"{}.pth".format(args.model_name))
+    elif args.model_name == "RNAMSM":
+        model = MSATransformer(model_config)
+        model = RNAMsmForRRInter(model)
+    model._load_pretrained_msa(
+        args.pretrained_model+"{}.pth".format(args.model_name))
 
     _loss_fn = RRInterLoss()
 
@@ -113,5 +118,5 @@ if __name__ == "__main__":
     if args.train:
         for i_epoch in range(args.num_train_epochs):
             print("Epoch: {}".format(i_epoch))
-            rr_inter_trainer.train(i_epoch)
             rr_inter_trainer.eval(i_epoch)
+            rr_inter_trainer.train(i_epoch)

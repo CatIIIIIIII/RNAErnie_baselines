@@ -2,7 +2,9 @@ import argparse
 
 from RNABERT.rnabert import BertModel
 from RNABERT.utils.bert import get_config
-from datasets import SeqClsCollator, SeqClsDataset
+from RNAMSM.model import MSATransformer
+from datasets import SeqClsDataset
+from collators import SeqClsCollator
 from losses import SeqClsLoss
 import torch
 from torch.optim import AdamW
@@ -10,18 +12,15 @@ from metrics import SeqClsMetrics
 from trainers import SeqClsTrainer
 from utils import str2bool, str2list
 from tokenizer import RNATokenizer
-from seq_cls import RNABertForSeqCls
-
+from seq_cls import RNABertForSeqCls, RNAFmForSeqCls, RNAMsmForSeqCls
+import RNAFM.fm as fm
 # ========== Define constants
-MODELS = ["RNABERT"]
-MAX_SEQ_LEN = {"RNABERT": 440}
+MODELS = ["RNABERT", "RNAMSM", "RNAFM"]
+MAX_SEQ_LEN = {"RNABERT": 440,
+               "RNAMSM": 512,
+               "RNAFM": 512}
 
 TASKS = ["nRC", "lncRNA_H", "lncRNA_M"]
-NUM_CLASSES = {
-    "nRC": 13,
-    "lncRNA_H": 2,
-    "lncRNA_M": 2,
-}
 LABEL2ID = {
     "nRC": {
         "5S_rRNA": 0,
@@ -52,22 +51,20 @@ LABEL2ID = {
 parser = argparse.ArgumentParser(
     'Implementation of RNA sequence classification.')
 # model args
-parser.add_argument('--model_name', type=str, default="RNABERT", choices=MODELS)
+parser.add_argument('--model_name', type=str, default="RNAFM", choices=MODELS)
 parser.add_argument('--vocab_path', type=str, default="./vocabs/")
 parser.add_argument('--pretrained_model', type=str,
-                    default="./checkpoints/bert/")
+                    default="./checkpoints/")
 parser.add_argument('--config_path', type=str,
-                    default="./RNABERT/RNA_bert_config.json")
+                    default="./configs/")
 
 parser.add_argument('--dataset_dir', type=str, default="./data/seq_cls")
 parser.add_argument('--dataset', type=str, default="nRC", choices=TASKS)
-parser.add_argument('--num_classes', type=int, default=0)
 parser.add_argument('--replace_T', type=bool, default=True)
 parser.add_argument('--replace_U', type=bool, default=False)
 
 parser.add_argument('--device', type=str, default='cpu')
 parser.add_argument('--max_seq_len', type=int, default=0)
-parser.add_argument('--hidden_size', type=int, default=120)
 parser.add_argument('--dataloader_num_workers', type=int, default=0)
 parser.add_argument('--learning_rate', type=float, default=1e-4)
 parser.add_argument('--train', type=str2bool, default=True)
@@ -86,12 +83,10 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     # ========== post process
-    args.num_classes = NUM_CLASSES[args.dataset]
     if args.max_seq_len == 0:
         args.max_seq_len = MAX_SEQ_LEN[args.model_name]
 
     # ========== args check
-    assert args.num_classes > 0, "num_classes must be greater than 0."
     assert args.replace_T ^ args.replace_U, "Only replace T or U."
 
     # ========== set device
@@ -101,12 +96,24 @@ if __name__ == "__main__":
     tokenizer = RNATokenizer(args.vocab_path + "{}.txt".format(args.model_name))
 
     if args.model_name == "RNABERT":
-        model_config = get_config("./configs/RNABERT.json")
+        model_config = get_config(
+            args.config_path + "{}.json".format(args.model_name))
         model = BertModel(model_config)
-        model = RNABertForSeqCls(model, args.hidden_size, args.num_classes)
+        model = RNABertForSeqCls(model)
+    elif args.model_name == "RNAMSM":
+        model_config = get_config(
+            args.config_path + "{}.json".format(args.model_name))
+        model = MSATransformer(**model_config)
+        model = RNAMsmForSeqCls(model)
+    elif args.model_name == "RNAFM":
+        model, alphabet = fm.pretrained.rna_fm_t12(
+            "checkpoints/RNA-FM_pretrained.pth")
+        model = RNAFmForSeqCls(model)
+    else:
+        raise ValueError("Unknown model name: {}".format(args.model_name))
+
     model._load_pretrained_bert(
         args.pretrained_model+"{}.pth".format(args.model_name))
-
     _loss_fn = SeqClsLoss()
 
     # ========== Prepare data
