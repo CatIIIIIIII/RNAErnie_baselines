@@ -14,7 +14,6 @@ from sklearn.metrics import (
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-
 from utils import Stack
 
 
@@ -22,7 +21,7 @@ class BaseCollator(object):
     def __init__(self):
         self.stack_fn = Stack()
 
-    def __call__(self, data):
+    def __call__(self, raw_data_b):
         raise NotImplementedError("Must implement __call__ method.")
 
 
@@ -128,14 +127,20 @@ class BaseMetrics(abc.ABC):
             metrics in dict
         """
         preds = torch.argmax(outputs, axis=-1)
-        preds = preds.numpy().astype('int32')
-        labels = labels.numpy().astype('int32')
+        preds = preds.cpu().numpy().astype('int32')
+        labels = labels.cpu().numpy().astype('int32')
 
         res = {}
         for name in self.metrics:
             func = getattr(self, name)
             if func:
-                m = func(preds, labels)
+                if func == self.auc:
+                    # given two neural outputs, calculate their logits
+                    # and then calculate auc
+                    logits = torch.sigmoid(outputs).cpu().numpy()
+                    m = func(logits, labels)
+                else:
+                    m = func(preds, labels)
                 res[name] = m
             else:
                 raise NotImplementedError
@@ -217,6 +222,8 @@ class BaseMetrics(abc.ABC):
         Returns:
             precision
         """
+        labels += 1
+        preds = preds[:, 1]
         return roc_auc_score(labels, preds)
 
 
@@ -235,6 +242,9 @@ class MlpProjector(nn.Module):
         self.activation = nn.ReLU()
         self.projection = nn.Linear(output_size, output_size)
         self.n_out = output_size
+
+    def get_n_out(self):
+        return self.n_out
 
     def forward(self, embeddings):
         """

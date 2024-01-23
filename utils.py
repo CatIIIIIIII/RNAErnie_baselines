@@ -1,6 +1,16 @@
 import collections
 import argparse
 import numpy as np
+import json
+from attrdict import AttrDict
+
+
+def get_config(file_path):
+    config_file = file_path  # "./weights/bert_config.json"
+    json_file = open(config_file, 'r')
+    json_object = json.load(json_file)
+    config = AttrDict(json_object)
+    return config
 
 
 def load_vocab(vocab_file):

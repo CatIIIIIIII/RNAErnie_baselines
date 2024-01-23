@@ -1,12 +1,11 @@
 import argparse
 
 from RNABERT.rnabert import BertModel
-from RNABERT.utils.bert import get_config
+from utils import get_config
 from RNAMSM.model import MSATransformer
 from datasets import SeqClsDataset
 from collators import SeqClsCollator
 from losses import SeqClsLoss
-import torch
 from torch.optim import AdamW
 from metrics import SeqClsMetrics
 from trainers import SeqClsTrainer
@@ -63,7 +62,7 @@ parser.add_argument('--dataset', type=str, default="nRC", choices=TASKS)
 parser.add_argument('--replace_T', type=bool, default=True)
 parser.add_argument('--replace_U', type=bool, default=False)
 
-parser.add_argument('--device', type=str, default='cpu')
+parser.add_argument('--device', type=str, default='cuda')
 parser.add_argument('--max_seq_len', type=int, default=0)
 parser.add_argument('--dataloader_num_workers', type=int, default=0)
 parser.add_argument('--learning_rate', type=float, default=1e-4)
@@ -89,9 +88,6 @@ if __name__ == "__main__":
     # ========== args check
     assert args.replace_T ^ args.replace_U, "Only replace T or U."
 
-    # ========== set device
-    torch.set_default_device(args.device)
-
     # ========== Build tokenizer, model, criterion
     tokenizer = RNATokenizer(args.vocab_path + "{}.txt".format(args.model_name))
 
@@ -100,21 +96,27 @@ if __name__ == "__main__":
             args.config_path + "{}.json".format(args.model_name))
         model = BertModel(model_config)
         model = RNABertForSeqCls(model)
+        model._load_pretrained_bert(
+            args.pretrained_model+"{}.pth".format(args.model_name))
     elif args.model_name == "RNAMSM":
         model_config = get_config(
             args.config_path + "{}.json".format(args.model_name))
         model = MSATransformer(**model_config)
         model = RNAMsmForSeqCls(model)
+        model._load_pretrained_bert(
+            args.pretrained_model+"{}.pth".format(args.model_name))
     elif args.model_name == "RNAFM":
-        model, alphabet = fm.pretrained.rna_fm_t12(
-            "checkpoints/RNA-FM_pretrained.pth")
+        model, alphabet = fm.pretrained.rna_fm_t12()
         model = RNAFmForSeqCls(model)
     else:
         raise ValueError("Unknown model name: {}".format(args.model_name))
+    model.to(args.device)
+    trainable_params = sum(
+        p.numel() for p in model.parameters() if p.requires_grad
+    )
+    print("Trainable parameters: {}".format(trainable_params))
 
-    model._load_pretrained_bert(
-        args.pretrained_model+"{}.pth".format(args.model_name))
-    _loss_fn = SeqClsLoss()
+    _loss_fn = SeqClsLoss().to(args.device)
 
     # ========== Prepare data
     dataset_train = SeqClsDataset(

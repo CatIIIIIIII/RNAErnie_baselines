@@ -8,9 +8,6 @@ from torch.utils.data import Dataset
 
 
 class SeqClsDataset(Dataset):
-    """.fasta Dataset for sequence classification.
-    """
-
     def __init__(self, fasta_dir, prefix, tokenizer, seed=0, train=True):
         super(SeqClsDataset, self).__init__()
 
@@ -36,23 +33,11 @@ class SeqClsDataset(Dataset):
 
 
 class GenerateRRInterTrainTest:
-    """generate train and test dataset for rna rna interaction prediction.
-    """
-
     def __init__(self,
                  rr_dir,
                  dataset,
                  split=0.8,
                  seed=0):
-        """init function
-
-        Args:
-            rr_dir (str): data root dir
-            dataset (str): dataset name
-            split (float, optional): split ratio. Defaults to 0.8.
-            seed (int, optional): random seed. Defaults to 0.
-        """
-
         csv_path = osp.join(rr_dir, dataset) + ".csv"
         self.data = pd.read_csv(csv_path, sep=",").values.tolist()
 
@@ -62,11 +47,6 @@ class GenerateRRInterTrainTest:
         np_rng.shuffle(self.data)
 
     def get(self):
-        """get train and test dataset
-
-        Returns:
-            tuple: RRInterDataset, RRInterDataset
-        """
         return RRInterDataset(self.data[:self.split_index]), RRInterDataset(self.data[self.split_index:])
 
 
@@ -88,3 +68,46 @@ class RRInterDataset(Dataset):
 
     def __len__(self):
         return len(self.data)
+
+
+def bpseq2dotbracket(bpseq):
+    dotbracket = []
+    for i, x in enumerate(bpseq):
+        if x == 0:
+            dotbracket.append('.')
+        elif x > i:
+            dotbracket.append('(')
+        else:
+            dotbracket.append(')')
+    return ''.join(dotbracket)
+
+
+class BPseqDataset(Dataset):
+
+    def __init__(self, data_root, bpseq_list):
+        super().__init__()
+        self.data_root = data_root
+        with open(bpseq_list) as f:
+            self.file_path = f.readlines()
+            self.file_path = [x.replace("\n", "") for x in self.file_path]
+
+    def __len__(self):
+        return len(self.file_path)
+
+    def __getitem__(self, idx):
+        file_path = osp.join(self.data_root, self.file_path[idx])
+        return self.load_bpseq(file_path)
+
+    def load_bpseq(self, filename):
+        with open(filename) as f:
+            p = [0]
+            s = ['']
+            for line in f:
+                line = line.rstrip('\n').split()
+                idx, c, pair = line
+                idx, pair = int(idx), int(pair)
+                s.append(c)
+                p.append(pair)
+
+        seq = ''.join(s)
+        return {"name": filename, "seq": seq, "pairs": np.array(p)}

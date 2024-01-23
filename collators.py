@@ -5,9 +5,6 @@ from base_classes import BaseCollator
 
 
 class SeqClsCollator(BaseCollator):
-    """Data collator for sequence classification.
-    """
-
     def __init__(self, max_seq_len, tokenizer, label2id,
                  replace_T=True, replace_U=False):
 
@@ -142,4 +139,38 @@ class RRDataCollator(BaseCollator):
             "tokens": torch.from_numpy(self.stack_fn(tokens_stack)),
             "input_ids": torch.from_numpy(self.stack_fn(input_ids_stack)),
             "labels": torch.from_numpy(self.stack_fn(labels_stack)),
+        }
+
+
+class SspCollator(BaseCollator):
+    def __init__(self, max_seq_len, tokenizer, replace_T=True, replace_U=False):
+        super(SspCollator, self).__init__()
+        self.max_seq_len = max_seq_len
+        self.tokenizer = tokenizer
+        self.replace_T = replace_T
+        self.replace_U = replace_U
+
+    def __call__(self, raw_data_b):
+        raw_data = raw_data_b[0]
+        name_stack = [raw_data["name"] if "name" in raw_data else None]
+        seq_stack = [raw_data["seq"]]
+        seq_stack = [x[:self.max_seq_len-1] for x in seq_stack]
+
+        input_seqs = raw_data["seq"].upper()
+        input_seqs = input_seqs.replace(
+            "T", "U") if self.replace_T else input_seqs.replace("U", "T")
+        kmer_text = seq2kmer(input_seqs)
+        kmer_text = "[CLS] " + kmer_text
+        input_ids_stack = self.tokenizer(kmer_text)["input_ids"]
+        input_ids_stack = input_ids_stack[:self.max_seq_len]
+        if None in input_ids_stack:
+            # replace all None with 0
+            input_ids_stack = [0 if x is None else x for x in input_ids_stack]
+        labels_stack = raw_data["pairs"] if "pairs" in raw_data else None
+        labels_stack = labels_stack[:self.max_seq_len]
+        return {
+            "names": name_stack,
+            "seqs": seq_stack,
+            "input_ids": self.stack_fn(input_ids_stack),
+            "labels": self.stack_fn(labels_stack),
         }

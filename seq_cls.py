@@ -27,8 +27,8 @@ class RNAMsmForSeqCls(nn.Module):
         self.load_state_dict(torch.load(path, map_location="cpu"), strict=False)
 
     def forward(self, input_ids):
-        output = self.bert(input_ids)
-        representations = output["representations"][0, 0, ...]
+        output = self.bert(input_ids, repr_layers=[10])
+        representations = output["representations"][10][:, 0, 0, :]
         logits = self.classifier(representations)
         return logits
 
@@ -43,7 +43,7 @@ class RNAFmForSeqCls(nn.Module):
         self.load_state_dict(torch.load(path, map_location="cpu"), strict=True)
 
     def forward(self, input_ids):
-        output = self.bert(input_ids)
-        representations = output["representations"][12]
+        output = self.bert(input_ids, repr_layers=[12])
+        representations = output["representations"][12][:, 0, :]
         logits = self.classifier(representations)
         return logits
