@@ -1,8 +1,21 @@
 # RNAErnie_baselines
 Official implement of BERT-like baselines (RNABERT, RNA-MSM, RNA-FM) for paper "Multi-purpose RNA Language Modeling with Motif-aware Pre-training and Type-guided Fine-tuning" with pytorch.
 
-## Installation
+- [RNAErnie\_baselines](#rnaernie_baselines)
+  - [Installation](#installation)
+  - [Pre-training](#pre-training)
+  - [Downstream Tasks](#downstream-tasks)
+    - [RNA sequence classification](#rna-sequence-classification)
+      - [1. Data Preparation](#1-data-preparation)
+      - [2. Fine-tuning](#2-fine-tuning)
+    - [RNA RNA interaction prediction](#rna-rna-interaction-prediction)
+      - [1. Data Preparation](#1-data-preparation-1)
+      - [2. Fine-tuning](#2-fine-tuning-1)
+    - [RNA secondary structure prediction](#rna-secondary-structure-prediction)
+      - [1. Data Preparation](#1-data-preparation-2)
+      - [2. Adaptation](#2-adaptation)
 
+## Installation
 First, download the repository and create the environment.
 
 ```bash
@@ -60,7 +73,7 @@ You could configure backbone model by changing `--model_name` to `RNAMSM` or `RN
 
 #### 1. Data Preparation
 
-You can download training data from [Google Drive](https://drive.google.com/drive/folders/1XUBVXAUyIB6NqWmwEdLLlnWFaoU_l3XN?usp=sharing) and unzip and place them in the `./data/ft/ssp` folder. Two tasks (RNAStrAlign-ArchiveII, bpRNA1m) are available for this task.
+You can download training data from [Google Drive](https://drive.google.com/drive/folders/1XUBVXAUyIB6NqWmwEdLLlnWFaoU_l3XN?usp=sharing) and unzip and place them in the `./data/ssp` folder. Two tasks (RNAStrAlign-ArchiveII, bpRNA1m) are available for this task.
 
 #### 2. Adaptation
 
@@ -68,11 +81,7 @@ Adapt RNAErnie on RNA secondary structure prediction task with the following com
 
 ```bash
 python run_ssp.py \
-    --task_name=RNAStrAlign \
-    --dataset_dir=./data/ft/ssp \
-    --model_name_or_path=./output/BERT,ERNIE,MOTIF,PROMPT/checkpoint_final \
-    --train=True \
-    --num_train_epochs=50 \
-    --lr=0.001 \
-    --output=./output_ft/ssp
+    --device 'cuda:0' \
+    --model_name RNAFM
 ```
+You could configure backbone model by changing `--model_name` to `RNAMSM` or `RNABERT`.
