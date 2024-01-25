@@ -31,7 +31,7 @@ conda activate ErnieFold
 ```
 
 ## Pre-training
-You need to download the pre-training model weight from [RNABERT](https://drive.google.com/file/d/10gJBl24OGQ_aZfxtj09dik0rrM4dOk_R/view?usp=sharing), [RNA-MSM](https://drive.google.com/file/d/1-Gl9LGjR_dmDfOARrIVvuOmb7w_tJvGA/view?usp=sharing) and place them in the `./checkpoints` folder. The pre-training model weight of RNA-FM would be downloaded automatically when you run the pre-training script.
+You need to download the pre-training model weight from [RNABERT](https://drive.google.com/file/d/10gJBl24OGQ_aZfxtj09dik0rrM4dOk_R/view?usp=sharing), [RNA-MSM](https://drive.google.com/file/d/1-Gl9LGjR_dmDfOARrIVvuOmb7w_tJvGA/view?usp=sharing) and place them in the `./checkpoints` folder. The pre-training model weight of RNA-FM would be downloaded automatically when you run the fine-tuning script.
 
 ## Downstream Tasks
 
