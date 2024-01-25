@@ -28,8 +28,8 @@ from trainers import SspTrainer
 MODELS = ["RNABERT", "RNAMSM", "RNAFM"]
 TASKS = ["RNAStrAlign", "bpRNA1m"]
 MAX_SEQ_LEN = {"RNABERT": 440,
-               "RNAMSM": 512,
-               "RNAFM": 512}
+               "RNAMSM": 1024,
+               "RNAFM": 1024}
 EMBED_DIMS = {"RNABERT": 120,
               "RNAMSM": 768,
               "RNAFM": 640}
@@ -82,12 +82,8 @@ parser.add_argument('--metrics',
 # logging args
 parser.add_argument('--output', type=str,
                     default="./output_ft/ssp", help='Logging directory.')
-parser.add_argument('--visualdl_dir', type=str,
-                    default="visualdl", help='Visualdl logging directory.')
 parser.add_argument('--logging_steps', type=int, default=100,
                     help='Update visualdl logs every logging_steps.')
-parser.add_argument('--save_max', type=str2bool, default=True,
-                    help='Save model with max metric.')
 
 args = parser.parse_args()
 

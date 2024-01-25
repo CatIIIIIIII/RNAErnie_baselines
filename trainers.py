@@ -220,7 +220,6 @@ class SspTrainer(BaseTrainer):
                         self.optimizer.step()
                     if torch.isnan(loss):
                         self.is_break = True
-                        break
                 else:
                     print(headers)
                 # log to pbar
@@ -232,18 +231,16 @@ class SspTrainer(BaseTrainer):
                 # reset loss if too many steps
                 if num_total >= self.args.logging_steps:
                     loss_total, num_total = 0, 0
-
         elapsed_time = time.time() - time_st
         print('Train Epoch: {}\tTime: {:.3f}s'.format(epoch, elapsed_time))
 
-    def eval(self, epoch, save_path=None):
+    def eval(self, epoch):
 
         self.model.eval()
         n_dataset = len(self.eval_dataloader.dataset)
         with tqdm(total=n_dataset) as pbar:
             # init with default values
             res = defaultdict(list)
-            ret_dataset, names_dataset, lens_dataet, scs_dataset, preds_dataset = [], [], [], [], []
             for instance in self.eval_dataloader:
                 headers = instance["names"]
                 refs = (instance["labels"], )
@@ -264,23 +261,10 @@ class SspTrainer(BaseTrainer):
                         for k, v in ret.items():
                             res[k].append(v)
 
-                if save_path:
-                    ret_dataset.append(ret)
-                    names_dataset.append(headers[0])
-                    lens_dataet.append(len(seqs[0]))
-                    scs_dataset.append(scs[0].item())
-                    preds_dataset.append(preds[0])
-
                 pbar.set_postfix(eval_fls='{:.3e}'.format(
                     np.mean(res[self.name_pbar])))
                 pbar.update(self.args.batch_size)
-
-            # save best model
             metrics_dataset = {}
-            for k, v in res.items():
-                metrics_dataset[k] = np.mean(v)
-            if self.args.save_max and self.args.train:
-                self.save_model(metrics_dataset, epoch)
             # log results to screen/bash
             results = {}
             log = 'Test\t' + self.args.task_name + "\t"
@@ -293,5 +277,3 @@ class SspTrainer(BaseTrainer):
                 tag = "eval/" + k
                 tag_value[tag] = v
             print(log.format(**results))
-            if self.visual_writer:
-                self.visual_writer.update_scalars(tag_value=tag_value, step=1)
