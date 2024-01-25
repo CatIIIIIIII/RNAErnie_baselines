@@ -84,4 +84,4 @@ python run_ssp.py \
     --device 'cuda:0' \
     --model_name RNAFM
 ```
-You could configure backbone model by changing `--model_name` to `RNAMSM` or `RNABERT`.
+You could configure backbone model by changing `--model_name` to `RNAMSM` or `RNABERT`. Or test on different tasks by changing `--task_name` to `RNAStrAlign` or `bpRNA1m`.
