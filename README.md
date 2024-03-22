@@ -1,6 +1,8 @@
 # RNAErnie_baselines
 Official implement of BERT-like baselines (RNABERT, RNA-MSM, RNA-FM) for paper "Multi-purpose RNA Language Modeling with Motif-aware Pre-training and Type-guided Fine-tuning" with pytorch.
 
+[![DOI](https://zenodo.org/badge/745841425.svg)](https://zenodo.org/doi/10.5281/zenodo.10851576)
+
 - [RNAErnie\_baselines](#rnaernie_baselines)
   - [Installation](#installation)
   - [Pre-training](#pre-training)
