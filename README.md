@@ -25,7 +25,7 @@ First, download the repository and create the environment.
 ```bash
 git clone https://github.com/CatIIIIIIII/RNAErnie_baselines.git
 cd ./RNAErnie_baselines
-conda env create -f environment.yml
+conda env create -f environment.yaml
 ```
 
 Then, activate the "RNAErnie" environment.
@@ -84,7 +84,7 @@ You can download training data from [Google Drive](https://drive.google.com/driv
 Adapt RNAErnie on RNA secondary structure prediction task with the following command:
 
 ```bash
-python run_ssp.py \
+python run_ss_pred.py \
     --device 'cuda:0' \
     --model_name RNAFM
 ```
