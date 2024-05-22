@@ -86,8 +86,6 @@ dependencies:
       - tensorboardx==2.6.2.2
       - threadpoolctl==3.5.0
       - tokenizers==0.19.1
-      - torch==2.0.1+cu118
-      - torchaudio==2.0.2+cu118
       - torchmetrics==1.4.0.post0
       - torchvision==0.15.2+cu118
       - tqdm==4.66.4
